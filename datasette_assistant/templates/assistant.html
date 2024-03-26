@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block title %}Query assistant{% endblock %}
+
+{% block content %}
+
+<h1>Query assistant</h1>
+
+<form action="" method="POST">
+  <p>
+    <label>Ask a question of your data</label>
+  </p>
+  <p><textarea style="width: 80%; height: 3em;" name="question"></textarea>
+  <p>
+    <input type="hidden" name="csrftoken" value="{{ csrftoken() }}">
+    <input type="submit" value="Submit">
+  </p>
+
+Tables: {{ tables }}
+
+<script>
+  document.querySelector('textarea[name=question]').focus();
+  </script>
+
+{% endblock %}

@@ -1,0 +1,34 @@
+[project]
+name = "datasette-assistant"
+version = "0.1"
+description = "Query databases and tables with AI assistance"
+readme = "README.md"
+authors = [{name = "Simon Willison"}]
+license = {text = "Apache-2.0"}
+classifiers=[
+    "Framework :: Datasette",
+    "License :: OSI Approved :: Apache Software License"
+]
+requires-python = ">=3.8"
+dependencies = [
+    "datasette",
+    "anthropic"
+]
+
+[project.urls]
+Homepage = "https://github.com/datasette/datasette-assistant"
+Changelog = "https://github.com/datasette/datasette-assistant/releases"
+Issues = "https://github.com/datasette/datasette-assistant/issues"
+CI = "https://github.com/datasette/datasette-assistant/actions"
+
+[project.entry-points.datasette]
+assistant = "datasette_assistant"
+
+[project.optional-dependencies]
+test = ["pytest", "pytest-asyncio", "pytest-recording"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "strict"
+
+[tool.setuptools.package-data]
+datasette_assistant = ["templates/*"]
