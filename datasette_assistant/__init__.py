@@ -2,18 +2,24 @@ from anthropic import AsyncAnthropic
 from datasette import hookimpl, Response, Forbidden
 import os
 import urllib
-import sqlite3
+import re
+from datasette.utils import sqlite3
 from typing import List, Set
 
 SYSTEM_PROMPT = """
 You answer questions by generating SQL queries using SQLite schema syntax.
-Always start with SQL comments explaining what you are about to do.
+Always start with -- SQL comments explaining what you are about to do.
 No yapping. Output SQL with extensive SQL comments and nothing else.
+Or output SQL in a sql tagged fenced markdown code block.
+Return only one SQL SELECT query.
 """.strip()
 
 SCHEMA_SQL = """
 select group_concat(sql, '; ') from sqlite_master;
 """
+
+sql_block_re = re.compile(r"```sql(.*?)```", re.DOTALL)
+
 
 client = AsyncAnthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 
@@ -22,22 +28,67 @@ async def has_permission(datasette, actor, database):
     return await datasette.permission_allowed(actor, "execute-sql", database)
 
 
-async def generate_sql(question, schema, errors=None):
-    messages = [
-        {"role": "user", "content": "The table schema is:\n" + schema},
-        {"role": "assistant", "content": "Ask questions to generate SQL"},
-        {"role": "user", "content": "How many rows in the sqlite_master table?"},
-        {"role": "assistant", "content": "-- Count rows in sqite_master table\nselect count(*) from sqlite_master"},
-        {"role": "user", "content": question},
-    ]
+async def generate_sql(messages):
     # if errors: show previous errors
     message = await client.messages.create(
         system=SYSTEM_PROMPT,
         max_tokens=1024,
         messages=messages,
-        model="claude-3-haiku-20240307",
+        model="claude-3-sonnet-20240229",
+        # model="claude-3-haiku-20240307",
+        # model="claude-3-opus-20240229",
     )
     return message.content[0].text
+
+
+async def generate_sql_with_retries(db, question, schema, max_retries=3):
+    messages = [
+        {"role": "user", "content": "The table schema is:\n" + schema},
+        {"role": "assistant", "content": "Ask questions to generate SQL"},
+        {"role": "user", "content": "How many rows in the sqlite_master table?"},
+        {
+            "role": "assistant",
+            "content": "-- Count rows in sqite_master table\nselect count(*) from sqlite_master",
+        },
+        {"role": "user", "content": question},
+    ]
+    attempt = 0
+    while attempt < max_retries:
+        attempt += 1
+        sql = await generate_sql(messages)
+        # Even though it shouldn't, sometimes it uses ```sql ... ```
+        match = sql_block_re.search(sql)
+        if match:
+            sql = match.group(1).strip()
+        # Try to run it as an explain
+        # First remove any of those leading comment lines
+        lines = sql.split("\n")
+        not_comments = [line for line in lines if not line.startswith("-- ")]
+        explain = "explain " + "\n".join(not_comments)
+        print("--")
+        print(explain)
+        print("--")
+        try:
+            if explain.lower().split()[1] != "select":
+                raise ValueError("only select queries are supported")
+            await db.execute(explain)
+            return sql
+        except (sqlite3.Error, sqlite3.Warning, ValueError) as ex:
+            messages.append(
+                {
+                    "role": "assistant",
+                    "content": sql,
+                }
+            )
+            messages.append(
+                {
+                    "role": "user",
+                    "content": "Error: {}".format(str(ex)),
+                }
+            )
+    # If we get here we are going to give up, but we'll send the query anyway
+    sql += f"\n-- Gave up after {max_retries} attempts"
+    return sql
 
 
 async def assistant(request, datasette):
@@ -56,7 +107,7 @@ async def assistant(request, datasette):
         # Here we go
         schema = (await db.execute(SCHEMA_SQL)).first()[0]
 
-        sql = await generate_sql(question, schema)
+        sql = await generate_sql_with_retries(db, question, schema)
         return Response.redirect(
             datasette.urls.database(database)
             + "?"
