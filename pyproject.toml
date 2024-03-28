@@ -25,7 +25,7 @@ CI = "https://github.com/datasette/datasette-assistant/actions"
 assistant = "datasette_assistant"
 
 [project.optional-dependencies]
-test = ["pytest", "pytest-asyncio", "pytest-recording"]
+test = ["pytest", "pytest-asyncio", "pytest-recording", "sqlite-utils"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "strict"

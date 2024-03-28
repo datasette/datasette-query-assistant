@@ -21,14 +21,11 @@ select group_concat(sql, '; ') from sqlite_master;
 sql_block_re = re.compile(r"```sql(.*?)```", re.DOTALL)
 
 
-client = AsyncAnthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
-
-
 async def has_permission(datasette, actor, database):
     return await datasette.permission_allowed(actor, "execute-sql", database)
 
 
-async def generate_sql(messages):
+async def generate_sql(client, messages):
     # if errors: show previous errors
     message = await client.messages.create(
         system=SYSTEM_PROMPT,
@@ -41,7 +38,7 @@ async def generate_sql(messages):
     return message.content[0].text
 
 
-async def generate_sql_with_retries(db, question, schema, max_retries=3):
+async def generate_sql_with_retries(client, db, question, schema, max_retries=3):
     messages = [
         {"role": "user", "content": "The table schema is:\n" + schema},
         {"role": "assistant", "content": "Ask questions to generate SQL"},
@@ -55,7 +52,7 @@ async def generate_sql_with_retries(db, question, schema, max_retries=3):
     attempt = 0
     while attempt < max_retries:
         attempt += 1
-        sql = await generate_sql(messages)
+        sql = await generate_sql(client, messages)
         # Even though it shouldn't, sometimes it uses ```sql ... ```
         match = sql_block_re.search(sql)
         if match:
@@ -107,7 +104,9 @@ async def assistant(request, datasette):
         # Here we go
         schema = (await db.execute(SCHEMA_SQL)).first()[0]
 
-        sql = await generate_sql_with_retries(db, question, schema)
+        client = AsyncAnthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+
+        sql = await generate_sql_with_retries(client, db, question, schema)
         return Response.redirect(
             datasette.urls.database(database)
             + "?"
@@ -178,12 +177,12 @@ def register_routes():
 
 def get_related_tables(
     sqlite_connection: sqlite3.Connection, table_name: str
-) -> List[str]:
+) -> Set[str]:
     def get_directly_related_tables(table: str, explored_tables: Set[str]) -> Set[str]:
         related_tables = set()
         cursor = sqlite_connection.cursor()
         # Get tables that table has a foreign key to
-        cursor.execute(f"PRAGMA foreign_key_list({table})")
+        cursor.execute(f'PRAGMA foreign_key_list("{table}")')
         for row in cursor.fetchall():
             related_table = row[2]
             if related_table not in explored_tables:
@@ -195,7 +194,7 @@ def get_related_tables(
         for row in cursor.fetchall():
             other_table = row[0]
             if other_table not in explored_tables:
-                cursor.execute(f"PRAGMA foreign_key_list({other_table})")
+                cursor.execute(f'PRAGMA foreign_key_list("{other_table}")')
                 for fk_row in cursor.fetchall():
                     if fk_row[2] == table:
                         related_tables.add(other_table)
@@ -215,4 +214,4 @@ def get_related_tables(
             )
         directly_related_tables = new_directly_related_tables
 
-    return list(all_related_tables)
+    return set(all_related_tables)
