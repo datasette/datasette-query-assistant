@@ -7,7 +7,8 @@ from typing import List, Set
 
 SYSTEM_PROMPT = """
 You answer questions by generating SQL queries using SQLite schema syntax.
-You only respond with the raw SQL query with extensive SQL comments but nothing else.
+Always start with SQL comments explaining what you are about to do.
+No yapping. Output SQL with extensive SQL comments and nothing else.
 """.strip()
 
 SCHEMA_SQL = """
@@ -26,7 +27,7 @@ async def generate_sql(question, schema, errors=None):
         {"role": "user", "content": "The table schema is:\n" + schema},
         {"role": "assistant", "content": "Ask questions to generate SQL"},
         {"role": "user", "content": "How many rows in the sqlite_master table?"},
-        {"role": "assistant", "content": "select count(*) from sqlite_master"},
+        {"role": "assistant", "content": "-- Count rows in sqite_master table\nselect count(*) from sqlite_master"},
         {"role": "user", "content": question},
     ]
     # if errors: show previous errors
