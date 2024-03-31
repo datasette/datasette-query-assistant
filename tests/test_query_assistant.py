@@ -1,5 +1,5 @@
 from datasette.app import Datasette
-from datasette_assistant import get_related_tables
+from datasette_query_assistant import get_related_tables
 import pytest
 import sqlite_utils
 
@@ -10,7 +10,7 @@ async def test_plugin_is_installed():
     response = await datasette.client.get("/-/plugins.json")
     assert response.status_code == 200
     installed_plugins = {p["name"] for p in response.json()}
-    assert "datasette-assistant" in installed_plugins
+    assert "datasette-query-assistant" in installed_plugins
 
 
 def test_get_related_tables():

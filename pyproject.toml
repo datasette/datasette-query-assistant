@@ -1,5 +1,5 @@
 [project]
-name = "datasette-assistant"
+name = "datasette-query-assistant"
 version = "0.1"
 description = "Query databases and tables with AI assistance"
 readme = "README.md"
@@ -16,13 +16,13 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/datasette/datasette-assistant"
-Changelog = "https://github.com/datasette/datasette-assistant/releases"
-Issues = "https://github.com/datasette/datasette-assistant/issues"
-CI = "https://github.com/datasette/datasette-assistant/actions"
+Homepage = "https://github.com/datasette/datasette-query-assistant"
+Changelog = "https://github.com/datasette/datasette-query-assistant/releases"
+Issues = "https://github.com/datasette/datasette-query-assistant/issues"
+CI = "https://github.com/datasette/datasette-query-assistant/actions"
 
 [project.entry-points.datasette]
-assistant = "datasette_assistant"
+assistant = "datasette_query_assistant"
 
 [project.optional-dependencies]
 test = ["pytest", "pytest-asyncio", "pytest-recording", "sqlite-utils"]
@@ -31,4 +31,4 @@ test = ["pytest", "pytest-asyncio", "pytest-recording", "sqlite-utils"]
 asyncio_mode = "strict"
 
 [tool.setuptools.package-data]
-datasette_assistant = ["templates/*"]
+datasette_query_assistant = ["templates/*"]
