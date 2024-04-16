@@ -8,9 +8,9 @@
 
 <form action="" method="POST">
   <p>
-    <label>Ask a question of your data</label>
+    <label for="id_question" style="width: auto">Ask a question of your data</label>
   </p>
-  <p><textarea style="width: 80%; height: 3em;" name="question"></textarea>
+  <p><textarea style="width: 80%; height: 3em;" name="question" id="id_question"></textarea>
   <p>
     <input type="hidden" name="csrftoken" value="{{ csrftoken() }}">
     <input type="submit" value="Submit">
@@ -20,6 +20,6 @@ Tables: {{ tables }}
 
 <script>
   document.querySelector('textarea[name=question]').focus();
-  </script>
+</script>
 
 {% endblock %}
