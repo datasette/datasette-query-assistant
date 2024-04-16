@@ -22,7 +22,9 @@ sql_block_re = re.compile(r"```sql(.*?)```", re.DOTALL)
 
 
 async def has_permission(datasette, actor, database):
-    return await datasette.permission_allowed(actor, "execute-sql", database)
+    return await datasette.permission_allowed(
+        actor, "execute-sql", database, default=True
+    )
 
 
 async def generate_sql(client, messages):
