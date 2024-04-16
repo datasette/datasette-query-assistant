@@ -49,7 +49,17 @@ async def generate_sql(client, messages, prefix=""):
     message = await client.messages.create(
         system=SYSTEM_PROMPT,
         max_tokens=1024,
-        messages=messages,
+        messages=(
+            messages
+            + [
+                {
+                    "role": "assistant",
+                    "content": prefix,
+                }
+            ]
+            if prefix
+            else []
+        ),
         # model="claude-3-sonnet-20240229",
         model="claude-3-haiku-20240307",
         # model="claude-3-opus-20240229",
@@ -67,10 +77,6 @@ async def generate_sql_with_retries(client, db, question, schema, max_retries=3)
             "content": "select count(*) from sqlite_master\n-- Count rows in the sqlite_master table",
         },
         {"role": "user", "content": question},
-        {
-            "role": "assistant",
-            "content": "select",
-        },
     ]
     attempt = 0
     while attempt < max_retries:
