@@ -18,8 +18,6 @@ SCHEMA_SQL = """
 select group_concat(sql, '; ') from sqlite_master;
 """
 
-sql_block_re = re.compile(r"```sql(.*?)```", re.DOTALL)
-
 
 async def has_permission(datasette, actor, database):
     return await datasette.permission_allowed(
@@ -27,17 +25,17 @@ async def has_permission(datasette, actor, database):
     )
 
 
-async def generate_sql(client, messages):
+async def generate_sql(client, messages, prefix=""):
     # if errors: show previous errors
     message = await client.messages.create(
         system=SYSTEM_PROMPT,
         max_tokens=1024,
         messages=messages,
-        model="claude-3-sonnet-20240229",
-        # model="claude-3-haiku-20240307",
+        # model="claude-3-sonnet-20240229",
+        model="claude-3-haiku-20240307",
         # model="claude-3-opus-20240229",
     )
-    return message.content[0].text
+    return prefix + message.content[0].text
 
 
 async def generate_sql_with_retries(client, db, question, schema, max_retries=3):
@@ -47,18 +45,18 @@ async def generate_sql_with_retries(client, db, question, schema, max_retries=3)
         {"role": "user", "content": "How many rows in the sqlite_master table?"},
         {
             "role": "assistant",
-            "content": "-- Count rows in sqite_master table\nselect count(*) from sqlite_master",
+            "content": "select count(*) from sqlite_master\n-- Count rows in the sqlite_master table",
         },
         {"role": "user", "content": question},
+        {
+            "role": "assistant",
+            "content": "select",
+        },
     ]
     attempt = 0
     while attempt < max_retries:
         attempt += 1
-        sql = await generate_sql(client, messages)
-        # Even though it shouldn't, sometimes it uses ```sql ... ```
-        match = sql_block_re.search(sql)
-        if match:
-            sql = match.group(1).strip()
+        sql = await generate_sql(client, messages, "select")
         # Try to run it as an explain
         # First remove any of those leading comment lines
         lines = sql.split("\n")
