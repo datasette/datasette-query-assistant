@@ -1,6 +1,6 @@
 [project]
 name = "datasette-query-assistant"
-version = "0.1a1"
+version = "0.1a2"
 description = "Query databases and tables with AI assistance"
 readme = "README.md"
 authors = [{name = "Simon Willison"}]
