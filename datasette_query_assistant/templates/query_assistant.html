@@ -1,10 +1,14 @@
 {% extends "base.html" %}
 
-{% block title %}Query assistant{% endblock %}
+{% block title %}Query assistant for {% if table %}{{ table }}{% else %}{{ database }}{% endif %}{% endblock %}
+
+{% block crumbs %}
+{{ crumbs.nav(request=request, database=database, table=table) }}
+{% endblock %}
 
 {% block content %}
 
-<h1>Query assistant</h1>
+<h1>Query assistant for {% if table %}{{ table }}{% else %}{{ database }}{% endif %}</h1>
 
 <form action="" method="POST">
   <p>
@@ -13,10 +17,13 @@
   <p><textarea style="width: 80%; height: 3em;" name="question" id="id_question"></textarea>
   <p>
     <input type="hidden" name="csrftoken" value="{{ csrftoken() }}">
+    <input type="hidden" name="table" value="{{ table }}">
     <input type="submit" value="Submit">
   </p>
 
-Tables: {{ tables }}
+<details><summary>Schema that will be passed to the model</summary>
+<pre>{{ schema }}</pre>
+</details>
 
 <script>
   document.querySelector('textarea[name=question]').focus();

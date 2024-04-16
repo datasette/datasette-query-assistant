@@ -15,8 +15,26 @@ Return only one SQL SELECT query.
 """.strip()
 
 SCHEMA_SQL = """
-select group_concat(sql, '; ') from sqlite_master;
+select group_concat(sql, ';
+') from sqlite_master where type != 'trigger'
 """
+SCHEMA_SQL_SPECIFIC = """
+select group_concat(sql, ';
+') from sqlite_master where tbl_name in (PARAMS) and type != 'trigger'
+"""
+
+
+async def get_schema(db, table=None):
+    if table:
+
+        def _related(conn):
+            return get_related_tables(conn, table)
+
+        tables = await db.execute_fn(_related)
+        sql = SCHEMA_SQL_SPECIFIC.replace("PARAMS", ",".join("?" for _ in tables))
+        return (await db.execute(sql, tuple(tables))).first()[0]
+    else:
+        return (await db.execute(SCHEMA_SQL)).first()[0]
 
 
 async def has_permission(datasette, actor, database):
@@ -97,12 +115,13 @@ async def assistant(request, datasette):
     if request.method == "POST":
         post_vars = await request.post_vars()
         question = (post_vars.get("question") or "").strip()
+        table = post_vars.get("table") or None
         if not question:
             datasette.add_message(request, "Question is required", datasette.ERROR)
-            return Response.redirect(request.path)
+            return Response.redirect(request.full_path)
 
         # Here we go
-        schema = (await db.execute(SCHEMA_SQL)).first()[0]
+        schema = await get_schema(db, table)
 
         client = AsyncAnthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 
@@ -115,19 +134,12 @@ async def assistant(request, datasette):
 
     # Figure out tables
     table = request.args.get("table")
-    tables = []
-    if not table:
-        tables = await db.table_names()
-    else:
-        # Get tables related to this one
-        def act(conn):
-            return get_related_tables(conn, table)
-
-        tables = await db.execute_fn(act)
-
+    schema = await get_schema(db, table)
     return Response.html(
         await datasette.render_template(
-            "query_assistant.html", {"tables": tables}, request=request
+            "query_assistant.html",
+            {"schema": schema, "database": database, "table": table},
+            request=request,
         )
     )
 
