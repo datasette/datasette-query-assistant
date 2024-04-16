@@ -15,6 +15,11 @@ Install this plugin in the same environment as Datasette.
 ```bash
 datasette install datasette-query-assistant
 ```
+
+## Configuration
+
+This plugin currently requires you to set the `ANTHROPIC_API_KEY` environment variable to a working [Anthropic API key](https://console.anthropic.com/account/keys).
+
 ## Usage
 
 Users with `execute-sql` permission will gain a database action menu item for "Query this database with AI assistance" which will let them ask a question and be redirected to SQL that will hopefully answer it.
