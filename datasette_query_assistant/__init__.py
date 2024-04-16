@@ -127,7 +127,7 @@ async def assistant(request, datasette):
 
     return Response.html(
         await datasette.render_template(
-            "assistant.html", {"tables": tables}, request=request
+            "query_assistant.html", {"tables": tables}, request=request
         )
     )
 
