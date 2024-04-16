@@ -20,13 +20,14 @@
     <input type="hidden" name="table" value="{{ table }}">
     <input type="submit" value="Submit">
   </p>
+</form>
 
 <details><summary>Schema that will be passed to the model</summary>
 <pre>{{ schema }}</pre>
 </details>
 
 <script>
-  document.querySelector('textarea[name=question]').focus();
+  document.querySelector('#id_question').focus();
 </script>
 
 {% endblock %}

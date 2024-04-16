@@ -31,6 +31,7 @@ async def get_schema(db, table=None):
             return get_related_tables(conn, table)
 
         tables = await db.execute_fn(_related)
+        tables.add(table)
         sql = SCHEMA_SQL_SPECIFIC.replace("PARAMS", ",".join("?" for _ in tables))
         return (await db.execute(sql, tuple(tables))).first()[0]
     else:
