@@ -40,3 +40,7 @@ To run the tests:
 ```bash
 pytest
 ```
+To re-generate the tests with refreshed examples from the Claude 3 API:
+```bash
+pytest -x --record-mode=rewrite --inline-snapshot=fix
+```

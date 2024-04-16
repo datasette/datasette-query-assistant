@@ -139,7 +139,6 @@ async def assistant(request, datasette):
             + urllib.parse.urlencode({"sql": sql})
         )
 
-    # Figure out tables
     table = request.args.get("table")
     schema = await get_schema(db, table)
     return Response.html(

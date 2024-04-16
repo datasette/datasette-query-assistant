@@ -1,8 +1,17 @@
 from datasette.app import Datasette
 from datasette_query_assistant import get_related_tables
+from inline_snapshot import snapshot
 import pytest_asyncio
 import pytest
 import sqlite_utils
+import urllib
+
+pytestmark = [pytest.mark.vcr(ignore_localhost=True)]
+
+
+@pytest.fixture(scope="module")
+def vcr_config():
+    return {"filter_headers": ["x-api-key"]}
 
 
 @pytest_asyncio.fixture
@@ -30,6 +39,7 @@ def test_get_related_tables():
 
 
 @pytest.mark.asyncio
+@pytest.mark.vcr()
 async def test_database_assistant_page(datasette):
     response = await datasette.client.get("/test/-/assistant")
     assert response.status_code == 200
@@ -37,6 +47,26 @@ async def test_database_assistant_page(datasette):
     assert (
         "<pre>CREATE TABLE foo (id integer primary key, name text)</pre>"
         in response.text
+    )
+    # Submit the form
+    csrftoken = response.cookies["ds_csrftoken"]
+    post_response = await datasette.client.post(
+        "/test/-/assistant",
+        cookies={
+            "ds_csrftoken": csrftoken,
+        },
+        data={
+            "question": "Show me all the data in the foo table",
+            "csrftoken": csrftoken,
+        },
+    )
+    assert post_response.status_code == 302
+    qs = dict(urllib.parse.parse_qsl(post_response.headers["location"].split("?")[1]))
+    assert qs["sql"] == snapshot(
+        """\
+select * from foo
+-- Select all rows and columns from the foo table\
+"""
     )
 
 
@@ -48,4 +78,24 @@ async def test_table_assistant_page(datasette):
     assert (
         "<pre>CREATE TABLE foo (id integer primary key, name text)</pre>"
         in response.text
+    )
+    # Submit the form
+    csrftoken = response.cookies["ds_csrftoken"]
+    post_response = await datasette.client.post(
+        "/test/-/assistant",
+        cookies={
+            "ds_csrftoken": csrftoken,
+        },
+        data={
+            "question": "Count of rows in foo",
+            "csrftoken": csrftoken,
+        },
+    )
+    assert post_response.status_code == 302
+    qs = dict(urllib.parse.parse_qsl(post_response.headers["location"].split("?")[1]))
+    assert qs["sql"] == snapshot(
+        """\
+select count(*) from foo 
+-- Count the number of rows in the 'foo' table\
+"""
     )
