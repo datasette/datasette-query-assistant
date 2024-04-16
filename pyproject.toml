@@ -22,7 +22,7 @@ Issues = "https://github.com/datasette/datasette-query-assistant/issues"
 CI = "https://github.com/datasette/datasette-query-assistant/actions"
 
 [project.entry-points.datasette]
-assistant = "datasette_query_assistant"
+query_assistant = "datasette_query_assistant"
 
 [project.optional-dependencies]
 test = ["pytest", "pytest-asyncio", "pytest-recording", "sqlite-utils"]
