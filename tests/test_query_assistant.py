@@ -64,8 +64,8 @@ async def test_database_assistant_page(datasette):
     qs = dict(urllib.parse.parse_qsl(post_response.headers["location"].split("?")[1]))
     assert qs["sql"] == snapshot(
         """\
-select * from foo
--- Select all rows and columns from the foo table\
+-- SQL query to select all columns and all rows from the table 'foo'
+SELECT * FROM foo;\
 """
     )
 
@@ -95,7 +95,8 @@ async def test_table_assistant_page(datasette):
     qs = dict(urllib.parse.parse_qsl(post_response.headers["location"].split("?")[1]))
     assert qs["sql"] == snapshot(
         """\
-select count(*) from foo 
--- Count the number of rows in the 'foo' table\
+-- Count the total number of rows in the table 'foo'
+SELECT COUNT(*) 
+FROM foo;\
 """
     )

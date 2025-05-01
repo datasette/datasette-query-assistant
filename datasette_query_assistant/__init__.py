@@ -1,18 +1,37 @@
-from anthropic import AsyncAnthropic
 from datasette import hookimpl, Response, Forbidden
-import os
-import urllib
+import dataclasses
+from llm import get_async_model
 import re
+import urllib
+from markupsafe import escape
+import markdown2
 from datasette.utils import sqlite3
-from typing import List, Set
+import itsdangerous
+from typing import Tuple, Optional, Set
 
 SYSTEM_PROMPT = """
 You answer questions by generating SQL queries using SQLite schema syntax.
 Always start with -- SQL comments explaining what you are about to do.
-No yapping. Output SQL with extensive SQL comments and nothing else.
-Or output SQL in a sql tagged fenced markdown code block.
-Return only one SQL SELECT query.
-""".strip()
+No yapping. Output SQL with extensive SQL comments in a sql tagged
+fenced markdown code block.
+
+Return only one SQL SELECT query. Follow the query with an explanation
+of what the query does and how it works, which should include bold for
+emphasis where appropriate.
+
+Example question:
+
+How many rows in the sqlite_master table?
+
+Example output (shown between ----):
+----
+```sql
+select count(*) from sqlite_master
+```
+Count the **number of rows** in the `sqlite_master` table.
+----
+The table schema is:
+""".lstrip()
 
 SCHEMA_SQL = """
 select group_concat(sql, ';
@@ -22,6 +41,15 @@ SCHEMA_SQL_SPECIFIC = """
 select group_concat(sql, ';
 ') from sqlite_master where tbl_name in (PARAMS) and type != 'trigger'
 """
+
+
+@dataclasses.dataclass
+class Config:
+    model_id: str
+
+
+def config(datasette):
+    return
 
 
 async def get_schema(db, table=None):
@@ -44,73 +72,44 @@ async def has_permission(datasette, actor, database):
     )
 
 
-async def generate_sql(client, messages, prefix=""):
-    # if errors: show previous errors
-    message = await client.messages.create(
-        system=SYSTEM_PROMPT,
-        max_tokens=1024,
-        messages=(
-            messages
-            + [
-                {
-                    "role": "assistant",
-                    "content": prefix,
-                }
-            ]
-            if prefix
-            else []
-        ),
-        # model="claude-3-sonnet-20240229",
-        model="claude-3-haiku-20240307",
-        # model="claude-3-opus-20240229",
-    )
-    return prefix + message.content[0].text
+_sql_re = re.compile(r"```sql\n(?P<sql>.*?)\n```(?P<explanation>.*)", re.DOTALL)
 
 
-async def generate_sql_with_retries(client, db, question, schema, max_retries=3):
-    messages = [
-        {"role": "user", "content": "The table schema is:\n" + schema},
-        {"role": "assistant", "content": "Ask questions to generate SQL"},
-        {"role": "user", "content": "How many rows in the sqlite_master table?"},
-        {
-            "role": "assistant",
-            "content": "select count(*) from sqlite_master\n-- Count rows in the sqlite_master table",
-        },
-        {"role": "user", "content": question},
-    ]
+def extract_sql_and_explanation(sql) -> Tuple[str, Optional[str]]:
+    match = _sql_re.search(sql)
+    if match:
+        return match.group("sql"), match.group("explanation")
+    return sql, None
+
+
+async def generate_sql_with_retries(
+    model, db, question, schema, sql=None, max_retries=3
+) -> Tuple[str, Optional[str]]:
+    # if sql:
+    # question = "Previous query:\n" + sql + "\n\n" + question
     attempt = 0
+    conversation = model.conversation()
     while attempt < max_retries:
         attempt += 1
-        sql = await generate_sql(client, messages, "select")
+        response = await conversation.prompt(
+            question, system=SYSTEM_PROMPT + schema, stream=False
+        )
+        sql, explanation = extract_sql_and_explanation(await response.text())
         # Try to run it as an explain
         # First remove any of those leading comment lines
         lines = sql.split("\n")
         not_comments = [line for line in lines if not line.startswith("-- ")]
         explain = "explain " + "\n".join(not_comments)
-        print("--")
-        print(explain)
-        print("--")
         try:
             if explain.lower().split()[1] != "select":
                 raise ValueError("only select queries are supported")
             await db.execute(explain)
-            return sql
+            return sql, explanation
         except (sqlite3.Error, sqlite3.Warning, ValueError) as ex:
-            messages.append(
-                {
-                    "role": "assistant",
-                    "content": sql,
-                }
-            )
-            messages.append(
-                {
-                    "role": "user",
-                    "content": "Error: {}".format(str(ex)),
-                }
-            )
+            question = "Error: {}".format(str(ex))
     # If we get here we are going to give up, but we'll send the query anyway
     sql += f"\n-- Gave up after {max_retries} attempts"
-    return sql
+    return sql, explanation
 
 
 async def assistant(request, datasette):
@@ -122,6 +121,7 @@ async def assistant(request, datasette):
     if request.method == "POST":
         post_vars = await request.post_vars()
         question = (post_vars.get("question") or "").strip()
+        sql = post_vars.get("sql") or None
         table = post_vars.get("table") or None
         if not question:
             datasette.add_message(request, "Question is required", datasette.ERROR)
@@ -130,13 +130,16 @@ async def assistant(request, datasette):
         # Here we go
         schema = await get_schema(db, table)
 
-        client = AsyncAnthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+        model = get_async_model("openai/gpt-4.1-mini")
 
-        sql = await generate_sql_with_retries(client, db, question, schema)
+        sql, explanation = await generate_sql_with_retries(
+            model, db, question, schema, sql=sql
+        )
+        args = {"sql": sql}
+        if explanation:
+            args["explanation"] = datasette.sign(explanation, namespace="explanation")
         return Response.redirect(
-            datasette.urls.database(database)
-            + "?"
-            + urllib.parse.urlencode({"sql": sql})
+            datasette.urls.database(database) + "?" + urllib.parse.urlencode(args)
         )
 
     table = request.args.get("table")
@@ -181,6 +184,41 @@ def database_actions(datasette, actor, database):
             ]
 
     return inner
+
+
+@hookimpl
+def top_query(request, datasette, database, sql):
+    signed_explanation = request.args.get("explanation") or ""
+    explanation = ""
+    try:
+        explanation_decoded = datasette.unsign(
+            signed_explanation, namespace="explanation"
+        )
+        if explanation_decoded:
+            explanation = '<div style="border: 2px solid #006400; background-color: #e8f5e9; margin-top: 1em; padding: 4px 10px 0px 10px; border-radius: 6px; max-width: 600px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); line-height: 1.5; color: #333;">{}</div>'.format(
+                markdown2.markdown(explanation_decoded)
+            )
+    except itsdangerous.exc.BadSignature:
+        explanation = ""
+    return """
+    <details><summary>AI query assistant</summary>
+    <form class="core" action="{}/-/assistant" method="post">
+    <p style="margin-top: 0.5em">
+    <textarea placeholder="Describe a change to make to this query" name="question"
+      style="width: 80%; height: 4em"></textarea></p>
+    <p>
+      <input type="submit" value="Update SQL">
+      <input type="hidden" name="sql" value="{}">
+      <input type="hidden" name="csrftoken" value="{}">
+    </p>
+    </form></details>
+    {}
+    """.format(
+        datasette.urls.database(database),
+        escape(sql),
+        request.scope["csrftoken"](),
+        explanation,
+    )
 
 
 @hookimpl

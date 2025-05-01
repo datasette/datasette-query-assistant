@@ -1,33 +1,31 @@
 interactions:
 - request:
-    body: '{"max_tokens": 1024, "messages": [{"role": "user", "content": "The table
-      schema is:\nCREATE TABLE foo (id integer primary key, name text)"}, {"role":
-      "assistant", "content": "Ask questions to generate SQL"}, {"role": "user", "content":
-      "How many rows in the sqlite_master table?"}, {"role": "assistant", "content":
-      "select count(*) from sqlite_master\n-- Count rows in the sqlite_master table"},
-      {"role": "user", "content": "Show me all the data in the foo table"}, {"role":
-      "assistant", "content": "select"}], "model": "claude-3-haiku-20240307", "system":
-      "You answer questions by generating SQL queries using SQLite schema syntax.\nAlways
-      start with -- SQL comments explaining what you are about to do.\nNo yapping.
-      Output SQL with extensive SQL comments and nothing else.\nOr output SQL in a
-      sql tagged fenced markdown code block.\nReturn only one SQL SELECT query."}'
+    body: '{"input": [{"role": "system", "content": "You answer questions by generating
+      SQL queries using SQLite schema syntax.\nAlways start with -- SQL comments explaining
+      what you are about to do.\nNo yapping. Output SQL with extensive SQL comments
+      in a sql tagged\nfenced markdown code block.\n\nReturn only one SQL SELECT query.
+      Follow the query with an explanation\nof what the query does and how it works,
+      which should include bold for\nemphasis where appropriate.\n\nExample question:\n\nHow
+      many rows in the sqlite_master table?\n\nExample output (shown between ----):\n----\n```sql\nselect
+      count(*) from sqlite_master\n```\nCount the **number of rows** in the `sqlite_master`
+      table.\n----\nThe table schema is:\nCREATE TABLE foo (id integer primary key,
+      name text)"}, {"role": "user", "content": "Show me all the data in the foo table"}],
+      "model": "gpt-4.1-mini", "stream": false}'
     headers:
       accept:
       - application/json
       accept-encoding:
       - gzip, deflate
-      anthropic-version:
-      - '2023-06-01'
       connection:
       - keep-alive
       content-length:
-      - '870'
+      - '879'
       content-type:
       - application/json
       host:
-      - api.anthropic.com
+      - api.openai.com
       user-agent:
-      - AsyncAnthropic/Python 0.25.2
+      - AsyncOpenAI/Python 1.76.2
       x-stainless-arch:
       - arm64
       x-stainless-async:
@@ -37,26 +35,35 @@ interactions:
       x-stainless-os:
       - MacOS
       x-stainless-package-version:
-      - 0.25.2
+      - 1.76.2
+      x-stainless-read-timeout:
+      - '600'
+      x-stainless-retry-count:
+      - '0'
       x-stainless-runtime:
       - CPython
       x-stainless-runtime-version:
-      - 3.10.10
+      - 3.12.0
     method: POST
-    uri: https://api.anthropic.com/v1/messages
+    uri: https://api.openai.com/v1/responses
   response:
     body:
       string: !!binary |
-        H4sIAAAAAAAAA1SOy2rDMBBFf0XcZZHBiRMC+oFCyMJtdn1gVHucOJZHrjQiDcb/Xpy2i64uHA6X
-        M6FrYDDEU5Wvytvh8akI27a87i/l3j6/8PHQQ0NuIy0WxWhPBI3g3QJsjF0UywKNwTfkYFA7mxrK
-        iuxsuz5l63y9yYt8B40ofqwifSbimmA4OaeR7o9mQsdjkkp8TxxhVputhk/yj+1mjdqzEAvM6/SX
-        JfS1BNzHQD2oNvhBtd6/cZapIzmqRVnnVPDXqCw3qvYuDRx/RDnTIiuxH44wv/+GBrLRMwyIm0pS
-        YMzfAAAA//8DANhA6bQtAQAA
+        H4sIAAAAAAAAA3RUTW/bMAy951cIunQLliJ27XztOHSnDsPW3prBlmU60SaLrkSlDYr898Gy4yRF
+        ezEsPvKJfCT1OmKMq5KvGLfgmmy2iG5kms6jRTpdRMu4iIWsimU5lUV5E5dyKorlNJkv42ohkqS6
+        4V9aAiz+gqQjCRoHnV1aEARlJlosmiezKJ5Fs3nAHAnyro2RWDcaCMouCKxFy1fMeK2DQZmjR1YC
+        CaXdJerIekkKzYW9Fi8Zemo8ZYT/4A2IJej27k1Dk+Q6mtTKqEk8jdPJNJlESV9WCOcr9jhijLHX
+        8B30qt1mkEsmxaKVa5nMFiKN5+ksSpfLJH5XrsBB+wYCCzgnNnACPtIlgBINgTmldJ7WBe2xcnih
+        ITo4CGOQxFGtxz8XYHBfMZ7nuXvSazOZsPtfd+zJg90zQuZAgyQmtGYSta+NY8KU4Wzx2bHKYs1o
+        C4xEoYFdVYhXa3N/e3f77YGN2fffP3+wCvHr2uR5vjYPW+V6cgtkFezAsfG4pWtJSkFiPGaO0ELJ
+        lAnGvELMe/5i32ekzIbBruXp0mKfvGtt+Tj/zCq0PWjx+UgTCK75UPyh/xv04BZ1UFI4pxwJQ51z
+        6xiceCOs0Bp0Rog6k0KHuSTroYMt7BR6lx1XIgtjM4ygBeHQKLPhq76FHKoKLZ05tePg61rYfW8c
+        MXbotgfsTknISEG7K7yESnjd9ZoHxc5zIagbsIJ8MEfX094aut1fXqGtxel8NkvBbyi+u7+reYtK
+        diJ5Qj4Ap8nihE3WnN9pvZFh/ELWyrV96Bffh0UYElLmYnf7d+MNcPYiDHlLIbdQniKnXe599Ns3
+        IV28B7zHO3TsI2pCEvoExnE66OUdXLxpNZBo57vlP4wO/wEAAP//AwDxf5SbhwUAAA==
     headers:
-      CF-Cache-Status:
-      - DYNAMIC
       CF-RAY:
-      - 875704994c7a67f9-SJC
+      - 939189000ab27d23-LAX
       Connection:
       - keep-alive
       Content-Encoding:
@@ -64,17 +71,33 @@ interactions:
       Content-Type:
       - application/json
       Date:
-      - Tue, 16 Apr 2024 20:45:15 GMT
+      - Thu, 01 May 2025 19:02:48 GMT
       Server:
       - cloudflare
+      Set-Cookie:
+      - __cf_bm=A36mulovkt818TSk94rwODLlLq0hFHW19akmZLwqUc0-1746126168-1.0.1.1-7rsETv8YOrhJVMZHG7IHyaC8jaEbY.6KFR8bhgkTDPOcZ7NqTkBBFZeinIWrN85B3kTI9HU6S4FdFOVay0_sKjXGP907SgZACZUxRlILDAo;
+        path=/; expires=Thu, 01-May-25 19:32:48 GMT; domain=.api.openai.com; HttpOnly;
+        Secure; SameSite=None
+      - _cfuvid=sZmpoXnD5vU7mZaYpIcqJwzoWujUPogspVn8ZctaUVY-1746126168965-0.0.1.1-604800000;
+        path=/; domain=.api.openai.com; HttpOnly; Secure; SameSite=None
       Transfer-Encoding:
       - chunked
-      request-id:
-      - req_01KDY28fjzAA9d615XULxyjW
-      via:
-      - 1.1 google
-      x-cloud-trace-context:
-      - c5f2822f3aa36f6cc77d4241a215077a
+      X-Content-Type-Options:
+      - nosniff
+      alt-svc:
+      - h3=":443"; ma=86400
+      cf-cache-status:
+      - DYNAMIC
+      openai-organization:
+      - user-r3e61fpak04cbaokp5buoae4
+      openai-processing-ms:
+      - '1874'
+      openai-version:
+      - '2020-10-01'
+      strict-transport-security:
+      - max-age=31536000; includeSubDomains; preload
+      x-request-id:
+      - req_59dde03c1f28080593ba14b98013ccdd
     status:
       code: 200
       message: OK
