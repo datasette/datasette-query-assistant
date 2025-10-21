@@ -1,6 +1,6 @@
 [project]
 name = "datasette-query-assistant"
-version = "0.1a3"
+version = "0.1a4"
 description = "Query databases and tables with AI assistance"
 readme = "README.md"
 authors = [{name = "Simon Willison"}]
@@ -10,7 +10,7 @@ classifiers=[
 ]
 requires-python = ">=3.9"
 dependencies = [
-    "datasette>=1.0a0",
+    "datasette==1.0a19",
     "llm>=0.22",
     "markdown2",
 ]
