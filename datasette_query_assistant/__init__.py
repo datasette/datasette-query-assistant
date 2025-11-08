@@ -1,4 +1,5 @@
 from datasette import hookimpl, Response, Forbidden
+from datasette.resources import DatabaseResource
 import dataclasses
 from llm import get_async_model
 import re
@@ -67,8 +68,10 @@ async def get_schema(db, table=None):
 
 
 async def has_permission(datasette, actor, database):
-    return await datasette.permission_allowed(
-        actor, "execute-sql", database, default=True
+    return await datasette.allowed(
+        action="execute-sql",
+        resource=DatabaseResource(database),
+        actor=actor,
     )
 
 
