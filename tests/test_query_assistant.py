@@ -96,7 +96,7 @@ async def test_table_assistant_page(datasette):
     assert qs["sql"] == snapshot(
         """\
 -- Count the total number of rows in the table 'foo'
-SELECT COUNT(*) 
+SELECT COUNT(*) \n\
 FROM foo;\
 """
     )

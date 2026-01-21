@@ -38,21 +38,12 @@ Users with `execute-sql` permission will gain a database action menu item for "Q
 
 ## Development
 
-To set up this plugin locally, first checkout the code. Then create a new virtual environment:
+To set up this plugin locally, checkout the code and run the tests with `uv` like this:
 ```bash
 cd datasette-query-assistant
-python3 -m venv venv
-source venv/bin/activate
-```
-Now install the dependencies and test dependencies:
-```bash
-pip install -e '.[test]'
-```
-To run the tests:
-```bash
-pytest
+uv run pytest
 ```
 To re-generate the tests with refreshed examples from the API:
 ```bash
-pytest -x --record-mode=rewrite --inline-snapshot=fix
+uv run pytest -x --record-mode=rewrite --inline-snapshot=fix
 ```
