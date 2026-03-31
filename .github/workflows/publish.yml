@@ -23,7 +23,7 @@ jobs:
         cache-dependency-path: pyproject.toml
     - name: Install dependencies
       run: |
-        pip install . --group test
+        pip install . --group dev
     - name: Run tests
       run: |
         python -m pytest
@@ -49,4 +49,3 @@ jobs:
         python -m build
     - name: Publish
       uses: pypa/gh-action-pypi-publish@release/v1
-
