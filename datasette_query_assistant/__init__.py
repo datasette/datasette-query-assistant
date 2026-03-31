@@ -1,7 +1,6 @@
 from datasette import hookimpl, Response, Forbidden
 from datasette.resources import DatabaseResource
-import dataclasses
-from llm import get_async_model
+from datasette_llm import LLM, Purpose
 import re
 import urllib
 from markupsafe import escape
@@ -9,6 +8,8 @@ import markdown2
 from datasette.utils import sqlite3
 import itsdangerous
 from typing import Tuple, Optional, Set
+
+PURPOSE = "query-assistant"
 
 SYSTEM_PROMPT = """
 You answer questions by generating SQL queries using SQLite schema syntax.
@@ -44,13 +45,14 @@ select group_concat(sql, ';
 """
 
 
-@dataclasses.dataclass
-class Config:
-    model_id: str
-
-
-def config(datasette):
-    return
+@hookimpl
+def register_llm_purposes(datasette):
+    return [
+        Purpose(
+            name=PURPOSE,
+            description="Generate SQL queries from natural language questions",
+        )
+    ]
 
 
 async def get_schema(db, table=None):
@@ -133,7 +135,7 @@ async def assistant(request, datasette):
         # Here we go
         schema = await get_schema(db, table)
 
-        model = get_async_model("openai/gpt-4.1-mini")
+        model = await LLM(datasette).model(purpose=PURPOSE)
 
         sql, explanation = await generate_sql_with_retries(
             model, db, question, schema, sql=sql

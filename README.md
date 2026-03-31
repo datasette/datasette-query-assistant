@@ -18,19 +18,17 @@ datasette install datasette-query-assistant
 
 ## Configuration
 
-Set the model ID to be used by this plugin by adding this to your Datasette configuration:
+This plugin uses [datasette-llm](https://github.com/datasette/datasette-llm) for model configuration. Set the model to use in your Datasette configuration:
 
 ```yaml
 plugins:
-  datasette-query-assistant:
-    model: openai/gpt-4.1-mini
-    key_env_var: OPENAI_API_KEY
+  datasette-llm:
+    purposes:
+      query-assistant:
+        model: openai/gpt-4.1-mini
 ```
-To use the `openai/gpt-4.1-mini` model you'll need to install `llm-openai-plugin` in addition to `datasette-query-assistant`.
 
-If the model needs an API key, set the `key_env_var` to the name of an environment variable and ensure that environment variable is correctly set.
-
-You can use any model that is available via an [LLM plugin](https://llm.datasette.io/en/stable/plugins/directory.html)
+You can use any model that is available via an [LLM plugin](https://llm.datasette.io/en/stable/plugins/directory.html).
 
 ## Usage
 

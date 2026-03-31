@@ -3,9 +3,8 @@ import pytest
 
 
 @pytest.fixture(autouse=True)
-def patch_env(monkeypatch):
-    if not os.environ.get("OPENAI_API_KEY"):
-        monkeypatch.setenv("OPENAI_API_KEY", "mock-key")
+def mock_api_key(monkeypatch):
+    monkeypatch.setenv("OPENAI_API_KEY", "mock-api-key")
 
 
 @pytest.fixture(scope="module")

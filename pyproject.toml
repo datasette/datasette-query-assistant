@@ -15,12 +15,13 @@ classifiers=[
 requires-python = ">=3.10"
 dependencies = [
     "datasette>=1.0a21",
-    "llm>=0.22",
+    "datasette-llm>=0.1a3",
     "markdown2",
 ]
 
 [dependency-groups]
 dev = [
+    "llm-echo",
     "llm-openai-plugin",
     "inline-snapshot",
     "pytest",

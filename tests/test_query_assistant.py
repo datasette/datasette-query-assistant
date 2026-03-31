@@ -16,7 +16,15 @@ def vcr_config():
 
 @pytest_asyncio.fixture
 async def datasette():
-    ds = Datasette()
+    ds = Datasette(
+        metadata={
+            "plugins": {
+                "datasette-llm": {
+                    "purposes": {"query-assistant": {"model": "openai/gpt-4.1-mini"}}
+                }
+            }
+        }
+    )
     db = ds.add_memory_database("test")
     await db.execute_write(
         "create table if not exists foo (id integer primary key, name text)"
@@ -62,12 +70,10 @@ async def test_database_assistant_page(datasette):
     )
     assert post_response.status_code == 302
     qs = dict(urllib.parse.parse_qsl(post_response.headers["location"].split("?")[1]))
-    assert qs["sql"] == snapshot(
-        """\
+    assert qs["sql"] == snapshot("""\
 -- SQL query to select all columns and all rows from the table 'foo'
 SELECT * FROM foo;\
-"""
-    )
+""")
 
 
 @pytest.mark.asyncio
@@ -93,10 +99,8 @@ async def test_table_assistant_page(datasette):
     )
     assert post_response.status_code == 302
     qs = dict(urllib.parse.parse_qsl(post_response.headers["location"].split("?")[1]))
-    assert qs["sql"] == snapshot(
-        """\
+    assert qs["sql"] == snapshot("""\
 -- Count the total number of rows in the table 'foo'
 SELECT COUNT(*) \n\
 FROM foo;\
-"""
-    )
+""")
